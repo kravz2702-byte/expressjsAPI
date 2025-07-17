@@ -1,12 +1,27 @@
+/**
+ * Import modules
+ */
 import express from 'express';
-import config from '@/config';
 import cors from 'cors';
-import type { CorsOptions } from 'cors';
 import cookieParser from 'cookie-parser';
 import compression from 'compression';
 import helmet from 'helmet';
+/**
+ * Custom modules
+ */
+import config from '@/config';
 import limiter from '@/lib/express_rate_limit';
+import { connectToDatabase, diconnectFromDatabase } from '@/lib/mongoose';
+
+/**
+ * Router
+ */
 import v1Routes from '@/routes/v1/index';
+
+/**
+ * Types 
+ */
+import type { CorsOptions } from 'cors';
 
 /**
  * Express app initial
@@ -42,6 +57,7 @@ app.use(limiter);
 
 (async () => {
     try {
+        await connectToDatabase()
         app.use('/api/v1',v1Routes)
     
         app.listen(config.PORT, () => {
@@ -58,3 +74,14 @@ app.use(limiter);
 })()
 
 
+const handleServerShutdown = async () => {
+    try{
+        await diconnectFromDatabase()
+        console.log('server SHUTDOWN')
+        process.exit(0);
+    } catch (err) {
+        console.log('Error during server SHUTDOWN', err)
+    }
+}
+process.on('SIGTERM', handleServerShutdown)
+process.on('SIGINT', handleServerShutdown)
